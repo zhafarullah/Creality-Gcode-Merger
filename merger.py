@@ -1353,9 +1353,7 @@ class GCodeMergerApp(tk.Tk):
                   activebackground=A_LT, activeforeground=WHITE,
                   command=dlg.destroy).pack(pady=(14, 0))
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  ENTRY POINT modified for push testing
-# ══════════════════════════════════════════════════════════════════════════════
+
 if __name__ == '__main__':
     app = GCodeMergerApp()
     app.mainloop()
