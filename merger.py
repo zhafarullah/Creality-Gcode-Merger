@@ -441,7 +441,7 @@ def assemble_output(cr_path: str, fc_path: str,
                      else 'Off')
     out = [
         '; ████████████████████████████████████████████████████████████████',
-        '; GCode Merger v4.0 — Creality K2 + FullControl',
+        '; GCode Merger v1.0 — Creality K2 + FullControl',
         f'; Created      : {now}',
         f'; Template     : {Path(cr_path).name}',
         f'; FullControl  : {Path(fc_path).name}',
