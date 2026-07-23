@@ -3,29 +3,29 @@ import tempfile
 import os
 import merger  # Import your original untouched merger.py file
 
-st.set_page_config(page_title="GCode Merger", page_icon="🖨️", layout="centered")
+st.set_page_config(page_title="GCode Merger", layout="centered")
 
 # ==============================================================================
 # USER GUIDE DIALOG (Hidden by default, acts like a popup modal)
 # ==============================================================================
-@st.dialog("📖 User Guide — v4.0", width="large")
+@st.dialog("User Guide — v1.0", width="large")
 def show_help():
     st.markdown("""
-    **🔵 Step 1 — FullControl G-Code (.gcode)**
+    **Step 1 — FullControl G-Code (.gcode)**
     A `.gcode` file exported from FullControl.xyz. It contains a non-planar toolpath with XYZ coordinates that vary layer by layer. This file has no Creality K2 start/end sequence.
 
-    **📦 Step 2 — STL Placeholder**
+    **Step 2 — STL Placeholder**
     Don't already have a Creality-sliced file cut to this object's exact size? Generate a placeholder box matching your model's width, depth and height — NOT a copy of the real geometry. Slice that box in Creality Print (or any slicer) with your printer profile, then use the resulting G-code as your Step 3 template.
 
-    **🟣 Step 3 — Slicer G-Code Template (.gcode)**
+    **Step 3 — Slicer G-Code Template (.gcode)**
     A `.gcode` file from Creality Print sliced for an object of the SAME SIZE. It supplies the `START_PRINT`, `END_PRINT`, chamber temperature, purge line, auto bed-leveling, and all the other Klipper macros for the Creality K2.
 
-    **🎯 Auto-Centering**
+    **Auto-Centering**
     The app automatically works out the bounding box of your FullControl toolpath, then shifts it in X and Y so the model sits dead-center on the bed.
     * Only X and Y are shifted — Z is NEVER touched (critical for non-planar prints!)
     * Only G0/G1 moves in absolute mode (G90) are modified.
 
-    **⚠️ Important Notes**
+    **Important Notes**
     * `START_PRINT` and `END_PRINT` are Creality Klipper macros — never remove them.
     * After merging, the printer un-retracts 1 mm (transition block) before printing.
     * If the FullControl temperature differs from the template, the printer will use the Creality temperature.
@@ -37,11 +37,11 @@ def show_help():
 # Layout for Title on the left, Help button on the right
 col_title, col_help = st.columns([5, 1])
 with col_title:
-    st.title("🖨️ GCode Merger")
-    st.markdown("**Creality K2 × FullControl | Non-Planar Printing Toolkit v4.0**")
+    st.title("GCode Merger")
+    st.markdown("**Creality K2 × FullControl | Non-Planar Printing Toolkit v1.0**")
 with col_help:
-    st.write("") # Vertical spacer
-    if st.button("❓ Help", use_container_width=True):
+    st.write("")  # Vertical spacer
+    if st.button("Help", use_container_width=True):
         show_help()
 
 st.divider()
@@ -53,7 +53,7 @@ cr_data = None
 # ==============================================================================
 # STEP 1: FULLCONTROL G-CODE
 # ==============================================================================
-st.subheader("1️⃣ FullControl G-Code")
+st.subheader("1. FullControl G-Code")
 st.markdown("*Upload the G-code generated from the fullcontrol.xyz website or FullControl Python.*")
 fc_file = st.file_uploader("Select FullControl .gcode file", type=["gcode", "gco", "g"], key="fc")
 
@@ -61,46 +61,46 @@ if fc_file:
     lines = fc_file.getvalue().decode("utf-8").splitlines()
     fc_data = merger.parse_fullcontrol(lines)
     fc_bbox = merger.find_bounding_box_3d(fc_data.toolpath)
-    
-    st.success("✅ File Loaded Successfully")
+
+    st.success("File Loaded Successfully")
     metric_cols = st.columns(4)
-    metric_cols[0].markdown(f"📐 **Toolpath:**\n{len(fc_data.toolpath)} lines")
-    metric_cols[1].markdown(f"🌡️ **Hotend:**\n{fc_data.extruder_temp}°C")
-    metric_cols[2].markdown(f"🛏️ **Bed:**\n{fc_data.bed_temp}°C")
-    metric_cols[3].markdown(f"💨 **Fan:**\nS{fc_data.fan_speed} ({round(fc_data.fan_speed/2.55)}%)")
-        
+    metric_cols[0].markdown(f"**Toolpath:**\n{len(fc_data.toolpath)} lines")
+    metric_cols[1].markdown(f"**Hotend:**\n{fc_data.extruder_temp}°C")
+    metric_cols[2].markdown(f"**Bed:**\n{fc_data.bed_temp}°C")
+    metric_cols[3].markdown(f"**Fan:**\nS{fc_data.fan_speed} ({round(fc_data.fan_speed / 2.55)}%)")
+
     if fc_data.has_primer:
-        st.caption(f"🖊️ Primer: {len(fc_data.primer)} lines")
-        
+        st.caption(f"Primer: {len(fc_data.primer)} lines")
+
     for w in fc_data.warnings:
-        st.warning(f"⚠️ {w}")
+        st.warning(w)
 
 st.write("---")
 
 # ==============================================================================
 # STEP 2: STL PLACEHOLDER
 # ==============================================================================
-st.subheader("2️⃣ STL Placeholder")
+st.subheader("2. STL Placeholder")
 st.markdown("*Download the STL and import it into your Creality Print or Orca Slicer.*")
 
 if fc_file and fc_bbox:
     min_x, max_x, min_y, max_y, min_z, max_z = fc_bbox
     w, d, h = max_x - min_x, max_y - min_y, max_z - min_z
     model_name = fc_file.name.split('.')[0]
-    
-    st.info(f"📏 **Detected Model Size:** {w:.1f} × {d:.1f} × {h:.1f} mm")
-    
+
+    st.info(f"**Detected Model Size:** {w:.1f} × {d:.1f} × {h:.1f} mm")
+
     # Auto-generate the STL silently in the background
     with tempfile.NamedTemporaryFile(delete=False, suffix=".stl") as tmp:
         tmp_path = tmp.name
     merger.generate_bbox_stl(tmp_path, w, d, h, model_name=model_name)
-    
+
     with open(tmp_path, "rb") as f:
         stl_bytes = f.read()
-        
+
     # User only sees the ready-to-download button
     st.download_button(
-        label=f"📦 Download Same-Size STL",
+        label="Download Same-Size STL",
         data=stl_bytes,
         file_name=f"{model_name}_bbox.stl",
         mime="model/stl",
@@ -108,59 +108,59 @@ if fc_file and fc_bbox:
     )
     os.remove(tmp_path)
 else:
-    st.info("ℹ️ Load a FullControl file in Step 1 to automatically generate the STL placeholder.")
+    st.info("Load a FullControl file in Step 1 to automatically generate the STL placeholder.")
 
 st.write("---")
 
 # ==============================================================================
 # STEP 3: SLICER G-CODE TEMPLATE
 # ==============================================================================
-st.subheader("3️⃣ Slicer G-Code Template")
+st.subheader("3. Slicer G-Code Template")
 st.markdown("*Export the G-code from your slicer using the STL placeholder, and upload it below.*")
 cr_file = st.file_uploader("Select Slicer .gcode file", type=["gcode", "gco", "g"], key="cr")
 
 if cr_file:
     lines = cr_file.getvalue().decode("utf-8").splitlines()
     cr_data = merger.parse_creality(lines)
-    
-    st.success("✅ File Loaded Successfully")
+
+    st.success("File Loaded Successfully")
     metric_cols2 = st.columns(4)
-    metric_cols2[0].markdown(f"▶️ **Start seq:**\n{len(cr_data.start_seq)} lines")
-    metric_cols2[1].markdown(f"⏹️ **End seq:**\n{len(cr_data.end_seq)} lines")
-    metric_cols2[2].markdown(f"🛏️ **Bed:**\n{cr_data.bed_temp}°C")
+    metric_cols2[0].markdown(f"**Start seq:**\n{len(cr_data.start_seq)} lines")
+    metric_cols2[1].markdown(f"**End seq:**\n{len(cr_data.end_seq)} lines")
+    metric_cols2[2].markdown(f"**Bed:**\n{cr_data.bed_temp}°C")
     if cr_data.chamber_temp:
-        metric_cols2[3].markdown(f"📦 **Chamber:**\n{cr_data.chamber_temp}°C")
-        
+        metric_cols2[3].markdown(f"**Chamber:**\n{cr_data.chamber_temp}°C")
+
     # Hotend Temperature Check
     if fc_data:
         td = abs(fc_data.extruder_temp - cr_data.extruder_temp)
         if td > 10:
-            st.warning(f"🌡️ **Hotend Temp Mismatch!** Creality={cr_data.extruder_temp}°C vs FullControl={fc_data.extruder_temp}°C. The printer will use the Creality temperature.")
+            st.warning(f"Hotend Temp Mismatch! Creality={cr_data.extruder_temp}°C vs FullControl={fc_data.extruder_temp}°C. The printer will use the Creality temperature.")
         else:
-            st.info(f"🌡️ **Matched Hotend:** {cr_data.extruder_temp}°C")
-            
+            st.info(f"Matched Hotend: {cr_data.extruder_temp}°C")
+
     for w in cr_data.warnings:
-        st.warning(f"⚠️ {w}")
+        st.warning(w)
 
 st.write("---")
 
 # ==============================================================================
 # STEP 4: OPTIONS & MERGE
 # ==============================================================================
-st.subheader("4️⃣ Options & Merge")
+st.subheader("4. Options & Merge")
 st.markdown("*Configure the options below, then click merge.*")
 
 opt_col1, opt_col2 = st.columns(2)
 
 with opt_col1:
-    st.markdown("**⚙️ General Options:**")
+    st.markdown("**General Options:**")
     opt_primer = st.checkbox("Include FullControl primer", value=False, help="Creality already ran a purge line (usually not needed)")
     opt_footer = st.checkbox("Include FullControl footer comments", value=True)
 
 with opt_col2:
-    st.markdown("**🎯 Centering Options:**")
+    st.markdown("**Centering Options:**")
     opt_center = st.checkbox("Automatically center the toolpath on the bed (X & Y)", value=True)
-    
+
     bed_cols = st.columns(2)
     bed_w = bed_cols[0].number_input("Bed Width (mm)", value=260.0, step=10.0)
     bed_h = bed_cols[1].number_input("Bed Depth (mm)", value=260.0, step=10.0)
@@ -171,53 +171,53 @@ if opt_center and fc_bbox:
     mw, mh = max_x - min_x, max_y - min_y
     cx, cy = (min_x + max_x) / 2, (min_y + max_y) / 2
     ox, oy = (bed_w / 2) - cx, (bed_h / 2) - cy
-    
+
     sx = '+' if ox >= 0 else ''
     sy = '+' if oy >= 0 else ''
-    
-    if min_x + ox < -0.1 or max_x + ox > bed_w + 0.1:
-        st.error(f"⚠️ Model ({mw:.1f} mm) is wider than the bed ({bed_w:.0f} mm)!")
-    elif min_y + oy < -0.1 or max_y + oy > bed_h + 0.1:
-        st.error(f"⚠️ Model ({mh:.1f} mm) is deeper than the bed ({bed_h:.0f} mm)!")
-    else:
-        st.success(f"🎯 **Auto-Center Preview:** Model will be shifted by X{sx}{ox:.2f} Y{sy}{oy:.2f} mm to fit exactly in the center.")
 
-st.write("") # Vertical spacer
+    if min_x + ox < -0.1 or max_x + ox > bed_w + 0.1:
+        st.error(f"Model ({mw:.1f} mm) is wider than the bed ({bed_w:.0f} mm)!")
+    elif min_y + oy < -0.1 or max_y + oy > bed_h + 0.1:
+        st.error(f"Model ({mh:.1f} mm) is deeper than the bed ({bed_h:.0f} mm)!")
+    else:
+        st.success(f"Auto-Center Preview: Model will be shifted by X{sx}{ox:.2f} Y{sy}{oy:.2f} mm to fit exactly in the center.")
+
+st.write("")  # Vertical spacer
 
 # ==============================================================================
 # BIG MERGE BUTTON
 # ==============================================================================
 if fc_data and cr_data:
-    if st.button("🔀 MERGE G-CODE", type="primary", use_container_width=True):
+    if st.button("MERGE G-CODE", type="primary", use_container_width=True):
         with st.spinner("Merging G-Code files..."):
             toolpath = fc_data.toolpath
             ci = None
-            
+
             # Apply Centering using original logic
             if opt_center:
                 toolpath, ci = merger.apply_centering(toolpath, float(bed_w), float(bed_h))
-            
+
             # Assemble output using original logic
             out_lines = merger.assemble_output(
                 cr_path=cr_file.name,
                 fc_path=fc_file.name,
-                cr=cr_data, 
-                fc=fc_data, 
+                cr=cr_data,
+                fc=fc_data,
                 toolpath=toolpath,
-                skip_primer=not opt_primer, 
+                skip_primer=not opt_primer,
                 include_footer=opt_footer,
-                center_info=ci, 
-                bed_w=float(bed_w), 
+                center_info=ci,
+                bed_w=float(bed_w),
                 bed_h=float(bed_h)
             )
-            
+
             merged_gcode = '\n'.join(out_lines) + '\n'
             filesize_kb = len(merged_gcode.encode('utf-8')) / 1024
-            
-            st.success(f"✅ **Merge Successful!** Processed {len(out_lines):,} lines ({filesize_kb:.1f} KB).")
-            
+
+            st.success(f"Merge Successful! Processed {len(out_lines):,} lines ({filesize_kb:.1f} KB).")
+
             st.download_button(
-                label="📥 DOWNLOAD MERGED G-CODE",
+                label="DOWNLOAD MERGED G-CODE",
                 data=merged_gcode,
                 file_name=f"merged_{fc_file.name}",
                 mime="text/plain",
@@ -225,5 +225,5 @@ if fc_data and cr_data:
                 use_container_width=True
             )
 else:
-    st.button("🔀 MERGE G-CODE", type="primary", use_container_width=True, disabled=True)
-    st.info("ℹ️ Please complete Step 1 and Step 3 to enable merging.")
+    st.button("MERGE G-CODE", type="primary", use_container_width=True, disabled=True)
+    st.info("Please complete Step 1 and Step 3 to enable merging.")

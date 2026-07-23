@@ -1,15 +1,4 @@
 #!/usr/bin/env python3
-"""
-╔══════════════════════════════════════════════════════════════════════╗
-║      GCode Merger GUI — Creality K2 × FullControl  v4.0             ║
-║  • Smart start/end sequence extraction from Creality Print          ║
-║  • Same-size STL generator — slice a matching template yourself     ║
-║  • Auto-centering of the toolpath to the middle of the bed          ║
-║  • Correct transition block (un-retract, fan, E-reset)              ║
-║  • No installs needed — pure Python 3.8+ with built-in Tkinter      ║
-╚══════════════════════════════════════════════════════════════════════╝
-"""
-
 import tkinter as tk
 from tkinter import filedialog, messagebox
 import threading, queue, os, re, sys, subprocess, platform
@@ -252,13 +241,7 @@ def find_bounding_box(toolpath: List[str]) -> Optional[Tuple[float, float, float
 
 
 def find_bounding_box_3d(toolpath: List[str]) -> Optional[Tuple[float, float, float, float, float, float]]:
-    """
-    Scan every G0/G1 move in absolute mode (G90, the default) and return
-    (min_x, max_x, min_y, max_y, min_z, max_z). Returns None if no XY
-    coordinates are found. Used for the same-size STL export (Step 2) and
-    for showing the model's height in the file card — it never modifies
-    the toolpath itself.
-    """
+
     min_x = min_y = min_z = float('inf')
     max_x = max_y = max_z = float('-inf')
     in_rel   = False
@@ -287,13 +270,7 @@ def find_bounding_box_3d(toolpath: List[str]) -> Optional[Tuple[float, float, fl
 
 
 def apply_centering(toolpath: List[str], bed_w: float, bed_h: float) -> Tuple[List[str], CenterInfo]:
-    """
-    Shift every X and Y in the toolpath so the model ends up centered on the bed.
-    - Only modifies G0/G1 moves in absolute mode (G90)
-    - Z is NOT touched (non-planar printing!)
-    - E and F are left unchanged
-    - Comments are left unchanged
-    """
+
     ci = CenterInfo(bed_cx=bed_w / 2, bed_cy=bed_h / 2)
     bbox = find_bounding_box(toolpath)
 
@@ -378,14 +355,7 @@ def centering_header_block(ci: CenterInfo, bed_w: float, bed_h: float) -> List[s
 # ══════════════════════════════════════════════════════════════════════════════
 def generate_bbox_stl(path: str, width: float, depth: float, height: float,
                       model_name: str = 'model') -> None:
-    """
-    Write a simple rectangular-box STL spanning (0,0,0) to (width, depth, height).
-
-    This is NOT a copy of the real FullControl model — it is only a bounding-box
-    stand-in. Its purpose is to be sliced in Creality Print (or any slicer) so the
-    resulting G-code has a start/end sequence (purge line, bed-mesh area, print-time
-    estimate, etc.) sized to match the real object's footprint and height.
-    """
+    
     w = max(float(width), 0.01)
     d = max(float(depth), 0.01)
     h = max(float(height), 0.01)
