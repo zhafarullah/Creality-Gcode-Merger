@@ -5,6 +5,25 @@ import merger  # Import your original untouched merger.py file
 
 st.set_page_config(page_title="GCode Merger", layout="centered")
 
+st.markdown(
+    """
+    <style>
+    div.stDownloadButton > button,
+    div.stButton > button {
+        background-color: #2e7d32 !important;
+        color: white !important;
+        border: 1px solid #2e7d32 !important;
+    }
+    div.stDownloadButton > button:hover,
+    div.stButton > button:hover {
+        background-color: #1b5e20 !important;
+        border-color: #1b5e20 !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # ==============================================================================
 # USER GUIDE DIALOG (Hidden by default, acts like a popup modal)
 # ==============================================================================
@@ -85,11 +104,11 @@ def show_help():
 col_title, col_help = st.columns([5, 1])
 with col_title:
     st.title("GCode Merger")
-    st.markdown("**Creality x FullControl | G-Code Merger v1.0**")
+    st.markdown("**FullControl G-Code Merger for Creality Klipper Printers**")
     st.markdown("by AAPISME — [TikTok](https://www.tiktok.com/@aapisme) | [GitHub](https://github.com/zhafarullah/Creality-Gcode-Merger)")
 with col_help:
     st.write("")  # Vertical spacer
-    if st.button("Help", use_container_width=True):
+    if st.button("User Guide", use_container_width=True):
         show_help()
 
 st.divider()
@@ -133,7 +152,7 @@ st.write("---")
 # ==============================================================================
 # STEP 2: STL PLACEHOLDER
 # ==============================================================================
-st.subheader("2. STL Placeholder")
+st.subheader("2. Generate Placeholder STL")
 st.markdown("*Download the STL and import it into your Creality Print or Orca Slicer.*")
 
 if fc_file and fc_bbox:
@@ -141,8 +160,7 @@ if fc_file and fc_bbox:
     w, d, h = max_x - min_x, max_y - min_y, max_z - min_z
     model_name = fc_file.name.split('.')[0]
 
-    st.info(f"**Detected Model Size:** {w:.1f} × {d:.1f} × {h:.1f} mm")
-
+    st.info(f"**Detected FullControl Bounding Box:** Width: {w:.2f} mm, Depth: {d:.2f} mm, Height: {h:.2f} mm")
     # Auto-generate the STL silently in the background
     with tempfile.NamedTemporaryFile(delete=False, suffix=".stl") as tmp:
         tmp_path = tmp.name
@@ -153,7 +171,7 @@ if fc_file and fc_bbox:
 
     # User only sees the ready-to-download button
     st.download_button(
-        label="Download Same-Size STL",
+        label="Download Placeholder STL",
         data=stl_bytes,
         file_name=f"{model_name}_bbox.stl",
         mime="model/stl",
@@ -189,13 +207,31 @@ if cr_file:
     if cr_data.chamber_temp:
         metric_cols2[3].markdown(f"**Chamber:**\n{cr_data.chamber_temp}°C")
 
-    # Hotend Temperature Check
     if fc_data:
-        td = abs(fc_data.extruder_temp - cr_data.extruder_temp)
-        if td > 10:
-            st.warning(f"Hotend Temp Mismatch! Creality={cr_data.extruder_temp}°C vs FullControl={fc_data.extruder_temp}°C. The printer will use the Creality temperature.")
+        nozzle_delta = abs(fc_data.extruder_temp - cr_data.extruder_temp)
+        bed_delta = abs(fc_data.bed_temp - cr_data.bed_temp)
+
+        st.markdown("**Temperature Comparison**")
+        temp_cols = st.columns(2)
+        temp_cols[0].markdown(
+            f"**FullControl**\n"
+            f"- Nozzle: {fc_data.extruder_temp}°C\n"
+            f"- Bed: {fc_data.bed_temp}°C"
+        )
+        temp_cols[1].markdown(
+            f"**Slicer template**\n"
+            f"- Nozzle: {cr_data.extruder_temp}°C\n"
+            f"- Bed: {cr_data.bed_temp}°C"
+        )
+
+        if nozzle_delta > 10 or bed_delta > 10:
+            st.warning(
+                "Temperature values differ. The printer will use the slicer template settings for the final merge."
+            )
         else:
-            st.info(f"Matched Hotend: {cr_data.extruder_temp}°C")
+            st.success(
+                "Temperature values are aligned. The merged file will keep the slicer template temperatures."
+            )
 
     for w in cr_data.warnings:
         st.warning(w)
@@ -238,7 +274,7 @@ if opt_center and fc_bbox:
     elif min_y + oy < -0.1 or max_y + oy > bed_h + 0.1:
         st.error(f"Model ({mh:.1f} mm) is deeper than the bed ({bed_h:.0f} mm)!")
     else:
-        st.success(f"Auto-Center Preview: Model will be shifted by X{sx}{ox:.2f} Y{sy}{oy:.2f} mm to fit exactly in the center.")
+        st.success(f"Auto-Center Preview: Model will be centered automatically. Offset X{sx}{ox:.2f} Y{sy}{oy:.2f} mm to fit exactly in the center.")
 
 st.write("")  # Vertical spacer
 
@@ -270,12 +306,25 @@ if fc_data and cr_data:
             )
 
             merged_gcode = '\n'.join(out_lines) + '\n'
-            filesize_kb = len(merged_gcode.encode('utf-8')) / 1024
+            filesize_mb = len(merged_gcode.encode('utf-8')) / (1024 * 1024)
 
-            st.success(f"Merge Successful! Processed {len(out_lines):,} lines ({filesize_kb:.1f} KB).")
+            if ci:
+                offset_x = ci.offset_x
+                offset_y = ci.offset_y
+            else:
+                offset_x = 0.0
+                offset_y = 0.0
+
+            sx = '+' if offset_x >= 0 else ''
+            sy = '+' if offset_y >= 0 else ''
+
+            st.markdown("### ✅ Merge Completed")
+            st.markdown("Merged successfully.")
+            st.markdown(f"**Output size**<br>{filesize_mb:.2f} MB", unsafe_allow_html=True)
+            st.markdown(f"**Center offset**<br>X {sx}{offset_x:.1f}<br>Y {sy}{offset_y:.1f}", unsafe_allow_html=True)
 
             st.download_button(
-                label="DOWNLOAD MERGED G-CODE",
+                label="[ Download Merged G-Code ]",
                 data=merged_gcode,
                 file_name=f"merged_{fc_file.name}",
                 mime="text/plain",
