@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Creality FullControl G-Code Merger</title>
+<meta name="description" content="Merge a non-planar FullControl toolpath with a Creality Print start/end sequence into one ready-to-print G-code file.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⌁</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">⌁</span>
+      <div class="brand-text">
+        <span class="brand-name">Create by AAPISME</span>
+        <span class="brand-sub"><a href="https://www.tiktok.com/@aapisme" target="_blank" rel="noopener noreferrer">TikTok</a> | <a href="https://github.com/zhafarullah/Creality-Gcode-Merger" target="_blank" rel="noopener noreferrer">GitHub</a> | <a href="mailto:ahmadzhafarullah@gmail.com">Email</a></span>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <!-- Tombol Guide dirubah menjadi icon logo ? -->
+      <button id="help-btn" class="btn-icon" type="button" aria-label="User Guide" title="User Guide">
+        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+
+  <!-- HERO -->
+  <section class="hero" aria-label="Tool Description">
+    <h1>Creality FullControl G-Code Merger</h1>
+    <p>Merge FullControl G-Code with Creality Klipper startup, shutdown, and printer initialization.</p>
+  </section>
+
+  <!-- STEP 1: FULLCONTROL GCODE -->
+  <section class="panel" data-accent="cyan" id="panel-step-1">
+    <header class="panel-head">
+      <span class="step-badge" id="badge-step-1">1</span>
+      <div>
+        <h2>Step 1: Upload FullControl G-Code</h2>
+        <p class="panel-desc">Upload G-Code generated from the fullcontrol.xyz website or FullControl Python.</p>
+      </div>
+    </header>
+    <div class="dropzone" id="fc-dropzone" tabindex="0" role="button" aria-label="Choose or drop your FullControl G-code file">
+      <input type="file" id="fc-input" accept=".gcode,.gco,.g,text/plain" class="visually-hidden">
+      <div class="dropzone-empty" id="fc-empty">
+        <svg viewBox="0 0 48 48" class="dz-icon"><path d="M24 6v24m0 0l-9-9m9 9l9-9M8 34v6a2 2 0 002 2h28a2 2 0 002-2v-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <p>Drop your FullControl G-code here or click to browse</p>
+        <span> Supported: .gcode</span>
+      </div>
+      <div class="dropzone-loaded" id="fc-loaded" hidden>
+        <div class="loaded-head">
+          <span class="loaded-check">✓</span>
+          <div class="loaded-name-wrap">
+            <strong id="fc-filename"></strong>
+            <button type="button" class="link-btn" id="fc-change">Change file</button>
+          </div>
+        </div>
+        <dl class="stat-list" id="fc-stats"></dl>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 2: STL PLACEHOLDER -->
+  <section class="panel" data-accent="amber" id="panel-step-2">
+    <header class="panel-head">
+      <span class="step-badge" id="badge-step-2">2</span>
+      <div>
+        <h2>Step 2: Generate Placeholder STL</h2>
+        <p class="panel-desc">Download the STL and import to your Creality Print or Orca Slicer.</p>
+      </div>
+    </header>
+    <div class="panel-row">
+      <button type="button" class="btn btn-amber" id="stl-btn" disabled>Download STL Placeholder</button>
+      <span class="panel-note" id="stl-note">Load a FullControl file in Step 1 to enable this.</span>
+    </div>
+  </section>
+
+  <!-- STEP 3: SLICER GCODE TEMPLATE -->
+  <section class="panel" data-accent="violet" id="panel-step-3">
+    <header class="panel-head">
+      <span class="step-badge" id="badge-step-3">3</span>
+      <div>
+        <h2>Step 3: Upload Slicer G-Code</h2>
+        <p class="panel-desc">Slice the placeholder STL using your printer profile, Export as G-code, then upload the file below.</p>
+      </div>
+    </header>
+    <div class="dropzone" id="cr-dropzone" tabindex="0" role="button" aria-label="Choose or drop your Slicer template file">
+      <input type="file" id="cr-input" accept=".gcode,.gco,.g,text/plain" class="visually-hidden">
+      <div class="dropzone-empty" id="cr-empty">
+        <svg viewBox="0 0 48 48" class="dz-icon"><path d="M24 6v24m0 0l-9-9m9 9l9-9M8 34v6a2 2 0 002 2h28a2 2 0 002-2v-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <p>Drop your Slicer template here or click to browse</p>
+        <span> Supported: .gcode</span>
+      </div>
+      <div class="dropzone-loaded" id="cr-loaded" hidden>
+        <div class="loaded-head">
+          <span class="loaded-check">✓</span>
+          <div class="loaded-name-wrap">
+            <strong id="cr-filename"></strong>
+            <button type="button" class="link-btn" id="cr-change">Change file</button>
+          </div>
+        </div>
+        <dl class="stat-list" id="cr-stats"></dl>
+      </div>
+    </div>
+  </section>
+
+<!-- STEP 4: OPTIONS & MERGE -->
+  <section class="panel" data-accent="mint" id="panel-step-4">
+    <header class="panel-head">
+      <span class="step-badge" id="badge-step-4">4</span>
+      <div>
+        <h2>Step 4: Options &amp; Merge</h2>
+        <p class="panel-desc">Configure the options below, then click merge.</p>
+      </div>
+    </header>
+
+    <!-- UI Opsi Dua Kolom (Kiri dan Kanan) -->
+    <div class="options-grid-split">
+      
+      <!-- Kolom Kiri: General Options -->
+      <div class="opts-col">
+        <h3 class="opts-heading">General Options</h3>
+        
+        <label class="checkbox-row">
+          <input type="checkbox" id="opt-primer">
+          <span>Include FullControl primer</span>
+          <!-- Elemen Tooltip -->
+          <div class="tooltip-wrapper">
+            <span class="tooltip-icon">?</span>
+            <div class="tooltip-text">Slicer already ran a purge line (usually not needed)</div>
+          </div>
+        </label>
+        
+        <label class="checkbox-row">
+          <input type="checkbox" id="opt-footer" checked>
+          <span>Include FullControl footer</span>
+        </label>
+      </div>
+
+      <!-- Kolom Kanan: Bed Settings -->
+      <div class="opts-col">
+        <h3 class="opts-heading">Bed Settings</h3>
+        
+        <label class="switch-row" style="margin-bottom: 12px;">
+          <input type="checkbox" id="center-toggle" checked>
+          <span class="switch" aria-hidden="true"></span>
+          <span class="switch-label">Auto-center toolpath</span>
+        </label>
+        
+        <div class="bed-size-wrapper">
+          <span class="bs-label">Bed Size:</span>
+          <span class="bed-inputs">
+            <input type="number" id="bed-width" value="260" min="1" step="1" aria-label="Bed width">
+            <span>×</span>
+            <input type="number" id="bed-height" value="260" min="1" step="1" aria-label="Bed depth">
+            <span>mm</span>
+          </span>
+        </div>
+      </div>
+
+    </div>
+
+    <div>
+      <button type="button" class="btn btn-mint btn-large" id="merge-btn" disabled>Merge &amp; Download G-Code</button>
+      <p class="merge-status" id="merge-status">Waiting for Step 1 &amp; Step 3 files...</p>
+    </div>
+  </section>
+
+  <!-- LOG -->
+  <section class="log-panel">
+    <header class="log-head">
+      <span>Process Log</span>
+      <button type="button" class="link-btn" id="log-clear">Clear</button>
+    </header>
+    <div class="log-output" id="log-output" role="log" aria-live="polite"></div>
+  </section>
+
+</main>
+
+<footer class="page-footer">
+  <p>Runs entirely in your browser — your G-code never leaves your device.</p>
+</footer>
+
+<div class="toast-container" id="toast-container" aria-live="assertive"></div>
+
+<!-- HELP MODAL -->
+<div class="modal-overlay" id="help-overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="help-title">
+    <header class="modal-head">
+      <h2 id="help-title">📖 User Guide</h2>
+      <button type="button" class="modal-close" id="help-close" aria-label="Close guide" onclick="closeHelp(); return false;">&times;</button>
+    </header>
+    <div class="modal-body">
+      
+      <h3 class="mh mh-cyan"><strong>Step 1 — FullControl G-code (.G-Code)</strong></h3>
+      <p>Upload the <code>.G-Code</code> file exported from <strong>FullControl.xyz</strong> or FullControl Python. This file contains the custom toolpath generated by FullControl and usually does <strong>not</strong> include your printer's startup and shutdown procedures.</p>
+
+      <hr>
+
+      <h3 class="mh mh-amber"><strong>Step 2 — Placeholder Model</strong></h3>
+      <p>If you don't already have a slicer-generated G-code for an object with the same dimensions, create a simple placeholder model (such as a box) with the <strong>same width, depth, and height</strong> as your FullControl model.</p>
+      <p>Slice this placeholder using <strong>Creality Print</strong> (or another compatible slicer) with your printer profile.</p>
+      <blockquote>⚠️ The placeholder only needs to match the overall dimensions. It does <strong>not</strong> need to match the actual geometry.</blockquote>
+
+      <hr>
+
+      <h3 class="mh mh-violet"><strong>Step 3 — Slicer G-code Template (.G-Code)</strong></h3>
+      <p>Upload the G-code generated by your slicer from the placeholder model.</p>
+      <p>This file provides all printer-specific startup and shutdown procedures, including features such as:</p>
+      <ul>
+        <li>Start and End macros</li>
+        <li>Bed heating</li>
+        <li>Nozzle heating</li>
+        <li>Auto bed leveling (if enabled)</li>
+        <li>Purge line</li>
+        <li>Homing</li>
+        <li>Other printer-specific Klipper macros and initialization commands</li>
+      </ul>
+
+      <hr>
+
+      <h3 class="mh mh-mint"><strong>Automatic Centering</strong></h3>
+      <p>The application automatically calculates the bounding box of your FullControl toolpath and centers it on the print bed.</p>
+      <ul>
+        <li>✅ Only <strong>X</strong> and <strong>Y</strong> coordinates are shifted.</li>
+        <li>✅ <strong>Z coordinates are never modified</strong>, making it safe for non-planar printing.</li>
+        <li>✅ Only absolute <code>G0</code> and <code>G1</code> movement commands (<code>G90</code>) are adjusted.</li>
+      </ul>
+
+      <hr>
+
+      <h3 class="mh"><strong>Important Notes</strong></h3>
+      <ul>
+        <li>Always use a slicer G-code generated for <strong>the same printer</strong> and <strong>approximately the same model dimensions</strong>.</li>
+        <li>Do <strong>not</strong> remove your printer's startup or shutdown macros.</li>
+        <li>The merged file preserves your printer's initialization sequence while replacing the printing toolpath with the FullControl toolpath.</li>
+        <li>If temperatures differ between the FullControl file and the slicer template, the printer will follow the temperatures defined in the slicer template.</li>
+      </ul>
+
+      <hr>
+
+      <h3 class="mh"><strong>Compatibility</strong></h3>
+      <p>This application is designed for <strong>Creality printers running Klipper firmware</strong>.</p>
+      <p>✅ Currently tested on:</p>
+      <ul>
+        <li><strong>Creality K2 Basic</strong></li>
+      </ul>
+      <p>Other Creality Klipper-based printers may also work, but they have <strong>not yet been tested</strong>.</p>
+
+      <hr>
+
+      <h3 class="mh"><strong>Feedback & Support</strong></h3>
+      <p>If you encounter any issues, have suggestions, or successfully use this tool on another Creality Klipper printer, I'd love to hear from you!</p>
+      <p>📩 TikTok: <a href="https://www.tiktok.com/@aapisme" target="_blank" rel="noopener noreferrer"><strong>@aapisme</strong></a></p>
+
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
